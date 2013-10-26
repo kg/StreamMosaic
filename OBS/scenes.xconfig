@@ -1,0 +1,130 @@
+scenes : {
+  Mosaic : {
+    class : Scene
+    sources : {
+      Katelyn (@antumbral) : {
+        render : 0
+        class : TextSource
+        data : {
+          baseSizeCX : 353.438
+          baseSizeCY : 49.6074
+          font : Calibri
+          color : -1
+          fontSize : 48
+          textOpacity : 100
+          scrollSpeed : 0
+          bold : 0
+          italic : 0
+          vertical : 0
+          wrap : 0
+          scrollMode : 0
+          underline : 0
+          backgroundColor : -16777216
+          backgroundOpacity : 0
+          useOutline : 1
+          outlineColor : -16777216
+          outlineSize : 2
+          outlineOpacity : 100
+          useTextExtents : 0
+          extentWidth : 100
+          extentHeight : 100
+          align : 0
+          file : 
+          text : Katelyn (@antumbral)
+          mode : 0
+        }
+        cx : 353
+        cy : 50
+        x : 1567
+        y : 1030
+        crop.left : 0
+        crop.top : 0
+        crop.right : 0
+        crop.bottom : 0
+      }
+      Joel (@BooDooPerson) : {
+        render : 1
+        class : TextSource
+        data : {
+          baseSizeCX : 367.625
+          baseSizeCY : 49.6074
+          font : Calibri
+          color : -1
+          fontSize : 48
+          textOpacity : 100
+          scrollSpeed : 0
+          bold : 0
+          italic : 0
+          vertical : 0
+          wrap : 0
+          scrollMode : 0
+          underline : 0
+          backgroundColor : -16777216
+          backgroundOpacity : 0
+          useOutline : 1
+          outlineColor : -16777216
+          outlineSize : 2
+          outlineOpacity : 100
+          useTextExtents : 0
+          extentWidth : 100
+          extentHeight : 100
+          align : 0
+          file : 
+          text : Joel (@BooDooPerson)
+          mode : 0
+        }
+        cx : 367.625
+        cy : 49.6074
+      }
+      Spelunky : {
+        render : 0
+        class : GraphicsCapture
+        data : {
+          window : "[Spelunky]: Spelunky"
+          windowClass : WindowClass1
+          stretchImage : 1
+          ignoreAspect : 0
+          captureMouse : 1
+          invertMouse : 0
+          useHotkey : 0
+          hotkey : 123
+          gamma : 100
+        }
+        cx : 928
+        cy : 522
+        x : 992
+        y : 558
+        crop.left : 0
+        crop.top : 0
+        crop.right : 0
+        crop.bottom : 0
+      }
+      Stream 1 : {
+        render : 1
+        class : VideoSource
+        data : {
+          width : 640
+          height : 480
+          volume : 100
+          isStretching : 1
+          isAudioOutputToStream : 0
+          audioOutputType : waveout
+          audioOutputTypeDevice : waveout
+          audioOutputDevice : Speakers (High Definition Audio ($1,$ffff)
+          isPlaylistLooping : 0
+          playlist : "http://127.0.0.1:53115/"
+        }
+        cx : 1440
+        cy : 1080
+        x : 240
+        y : 0
+        crop.left : 0
+        crop.top : 0
+        crop.right : 0
+        crop.bottom : 0
+      }
+    }
+  }
+}
+global sources : {
+}
