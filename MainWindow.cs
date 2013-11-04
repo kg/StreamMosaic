@@ -16,141 +16,144 @@ using System.Windows.Forms;
 
 namespace StreamMosaic {
     public partial class MainWindow : Form {
-        class OBSLauncher {
+        public class StreamResolver {
             public readonly MainWindow Form;
-            private readonly int RowCount;
-            private readonly string[] SourceURLs;
+            private readonly int RowIndex;
 
-            public OBSLauncher (MainWindow form) {
+            private readonly object Mutex = new object();
+
+            private Process LivestreamerProcess;
+            private NamedPipeServerStream ServerPipe;
+
+            public StreamResolver (MainWindow form, int rowIndex) {
                 Form = form;
-                RowCount = Form.Sources.RowCount;
-                SourceURLs = (from row in Form.Sources.Rows.Cast<DataGridViewRow>() select Convert.ToString(row.Cells[0].Value)).ToArray();
+                RowIndex = rowIndex;
             }
 
-            public void Go (Action onComplete) {
-                ThreadPool.QueueUserWorkItem(Worker, onComplete);
+            public void Resolve () {
+                var sourceUrl = Form.Sources.Rows[RowIndex].Cells[0].Value;
+
+                ThreadPool.QueueUserWorkItem(Worker, sourceUrl);
+            }
+
+            public void Dispose () {
+                if (LivestreamerProcess != null) {
+                    try {
+                        LivestreamerProcess.Kill();
+                        LivestreamerProcess.Dispose();
+                    } catch {
+                    }
+                    LivestreamerProcess = null;
+                }
+
+                if (ServerPipe != null) {
+                    ServerPipe.Dispose();
+                    ServerPipe = null;
+                }
             }
 
             private void Worker (object state) {
-                var servers = new List<NamedPipeServerStream>();
-                var processes = new List<Process>();
-                var resolvedURLs = new string[SourceURLs.Length];
+                try {
+                    var sourceUrl = (string)state;
 
-                // First we launch a livestreamer instance per URL to get the resolved URL so we can feed it into OBS
+                    lock (Mutex) {
+                        Dispose();
 
-                for (var i = 0; i < RowCount; i++) {
-                    var url = SourceURLs[i];
-                    if (String.IsNullOrWhiteSpace(url))
-                        continue;
+                        string resolvedUrl = null;
 
-                    string resolvedUrl = null;
+                        ServerPipe = new NamedPipeServerStream("Stream Mosaic", PipeDirection.InOut, 64, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
+                        var connection = ServerPipe.BeginWaitForConnection(null, null);
 
-                    var npss = new NamedPipeServerStream("Stream Mosaic", PipeDirection.InOut, RowCount, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
-                    servers.Add(npss);
-                    var connection = npss.BeginWaitForConnection(null, null);
+                        var psi = new ProcessStartInfo(
+                            Form.LivestreamerPath,
+                            String.Format(
+                                "--player-continuous-http --player StreamMosaic.exe \"{0}\" best",
+                                sourceUrl
+                            )
+                        );
+                        psi.UseShellExecute = false;
+                        psi.CreateNoWindow = true;
+                        psi.WindowStyle = ProcessWindowStyle.Hidden;
+                        psi.RedirectStandardError = true;
+                        psi.RedirectStandardOutput = true;
+                        LivestreamerProcess = Process.Start(psi);
 
-                    var psi = new ProcessStartInfo(
-                        @"C:\Program Files (x86)\LiveStreamer\livestreamer.exe",
-                        String.Format(
-                            "--player-continuous-http --player StreamMosaic.exe \"{0}\" best",
-                            url
-                        )
-                    );
-                    psi.CreateNoWindow = true;
-                    psi.WindowStyle = ProcessWindowStyle.Minimized;
-                    processes.Add(Process.Start(psi));
+                        connection.AsyncWaitHandle.WaitOne();
+                        ServerPipe.EndWaitForConnection(connection);
 
-                    connection.AsyncWaitHandle.WaitOne();
-                    npss.EndWaitForConnection(connection);
+                        var bytes = new byte[10240];
+                        var numBytes = ServerPipe.Read(bytes, 0, bytes.Length);
+                        resolvedUrl = Encoding.UTF8.GetString(bytes, 0, numBytes);
 
-                    var bytes = new byte[10240];
-                    var numBytes = npss.Read(bytes, 0, bytes.Length);
-                    resolvedURLs[i] = resolvedUrl = Encoding.UTF8.GetString(bytes, 0, numBytes);
+                        // We keep the pipe open so the child process survives, which keeps livestreamer's proxy alive.
 
-                    // We keep the pipe open so the child process survives, which keeps livestreamer's proxy alive.
+                        var ar = Form.BeginInvoke(
+                            (Action<int>)((index) => {
+                                Form.Sources.Rows[index].Cells[1].Value = resolvedUrl;
+                            }), RowIndex
+                        );
 
-                    var ar = Form.BeginInvoke(
-                        (Action<int>)((index) => {
-                            Form.Sources.Rows[index].Cells[1].Value = resolvedUrl;
-                        }), i
-                    );
-
-                    ar.AsyncWaitHandle.WaitOne();
+                        ar.AsyncWaitHandle.WaitOne();
+                    }
+                } catch (Exception exc) {
+                    MessageBox.Show(exc.ToString());
                 }
-
-                // Now we update the sources file...
-
-                var sourcesPath = @"..\OBS\scenes.xconfig";
-                var sourcesBackupPath = sourcesPath + ".old";
-                var existingSources = File.ReadAllText(sourcesPath);
-
-                var re = new Regex(
-                    @"(Stream (?'streamIndex'[0-9]*) :).*?\n( *)playlist( *):( *)(?'playlist'[^\n]*)",
-                    RegexOptions.ExplicitCapture | RegexOptions.Singleline
-                );
-                var newSources = re.Replace(
-                    existingSources,
-                    (m) => {
-                        var index = Convert.ToInt32(m.Groups["streamIndex"].Value) - 1;
-                        var a = m.Groups["playlist"].Index - m.Index;
-                        var b = a + m.Groups["playlist"].Length;
-
-                        var result = m.Value.Substring(0, a) +
-                            (resolvedURLs[index] ?? "none") +
-                            m.Value.Substring(b);
-
-                        return result;
-                    }
-                );
-
-                if (File.Exists(sourcesBackupPath))
-                    File.Delete(sourcesBackupPath);
-
-                File.Move(sourcesPath, sourcesBackupPath);
-                File.WriteAllText(sourcesPath, newSources);
-
-                // Now launch OBS and wait for it to exit.
-
-                using (var obsProcess = Process.Start(@"..\OBS\OBS.exe", "-portable"))
-                    obsProcess.WaitForExit();
-
-                // Close down pipes to kill child processes so that livestreamer closes its proxies
-                foreach (var npss in servers) {
-                    try {
-                        npss.Write(new byte[1] { 0 }, 0, 1);
-                        npss.Flush();
-                    } catch {
-                    }
-                    try {
-                        npss.Dispose();
-                    } catch {
-                    }
-                }
-
-                foreach (var process in processes)
-                    process.Dispose();
-
-                var onComplete = (Action)state;
-                Form.BeginInvoke(onComplete);
             }
         }
+
+        public readonly Dictionary<int, StreamResolver> RowResolvers = new Dictionary<int, StreamResolver>();
+
+        public readonly string LivestreamerPath = null;
 
         public MainWindow () {
             InitializeComponent();
 
-            Sources.RowCount = 4;
+            var paths = new[] {
+                @"C:\Program Files (x86)\LiveStreamer\livestreamer.exe",
+                @"C:\Program Files\LiveStreamer\livestreamer.exe",
+                @"livestreamer.exe"
+            };
+
+            foreach (var path in paths) {
+                if (File.Exists(path))
+                    LivestreamerPath = path;
+            }
+
+            if (LivestreamerPath == null)
+                MessageBox.Show("Cannot find Livestreamer.exe");
+
+            Sources_RowsAdded(Sources, new DataGridViewRowsAddedEventArgs(0, 0));
         }
 
-        private void StartOBS_Click (object sender, EventArgs e) {
-            UseWaitCursor = true;
-            Sources.Enabled = StartOBS.Enabled = false;
-
-            (new OBSLauncher(this)).Go(ResolveComplete);
+        private void Sources_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e) {
+            for (var i = 0; i < Sources.RowCount; i++)
+                Sources.Rows[i].Cells[2].Value = "Resolve";
         }
 
-        private void ResolveComplete () {
-            UseWaitCursor = false;
-            Sources.Enabled = StartOBS.Enabled = true;
+        private StreamResolver GetRowResolver (int rowIndex) {
+            StreamResolver result;
+
+            if (!RowResolvers.TryGetValue(rowIndex, out result))
+                result = RowResolvers[rowIndex] = new StreamResolver(this, rowIndex);
+
+            return result;
+        }
+
+        private void Sources_CellContentClick (object sender, DataGridViewCellEventArgs e) {
+            if (e.ColumnIndex != 2)
+                return;
+
+            var resolver = GetRowResolver(e.RowIndex);
+            if (resolver == null)
+                return;
+
+            var buttonCell = (DataGridViewButtonCell)Sources.Rows[e.RowIndex].Cells[e.ColumnIndex];
+            resolver.Resolve();
+        }
+
+        private void MainWindow_FormClosing (object sender, FormClosingEventArgs e) {
+            foreach (var rr in RowResolvers)
+                rr.Value.Dispose();
         }
     }
 }

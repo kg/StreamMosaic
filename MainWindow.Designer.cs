@@ -26,64 +26,68 @@
             this.Sources = new System.Windows.Forms.DataGridView();
             this.URL = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.ResolvedURL = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.StartOBS = new System.Windows.Forms.Button();
+            this.Resolve = new System.Windows.Forms.DataGridViewButtonColumn();
             ((System.ComponentModel.ISupportInitialize)(this.Sources)).BeginInit();
             this.SuspendLayout();
             // 
             // Sources
             // 
-            this.Sources.AllowUserToAddRows = false;
-            this.Sources.AllowUserToDeleteRows = false;
             this.Sources.AllowUserToResizeColumns = false;
             this.Sources.AllowUserToResizeRows = false;
             this.Sources.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.Sources.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.URL,
-            this.ResolvedURL});
+            this.ResolvedURL,
+            this.Resolve});
             this.Sources.EditMode = System.Windows.Forms.DataGridViewEditMode.EditOnEnter;
             this.Sources.Location = new System.Drawing.Point(12, 12);
             this.Sources.Name = "Sources";
             this.Sources.RowHeadersVisible = false;
-            this.Sources.Size = new System.Drawing.Size(770, 325);
+            this.Sources.Size = new System.Drawing.Size(770, 367);
             this.Sources.TabIndex = 0;
+            this.Sources.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.Sources_CellContentClick);
+            this.Sources.RowsAdded += new System.Windows.Forms.DataGridViewRowsAddedEventHandler(this.Sources_RowsAdded);
             // 
             // URL
             // 
-            this.URL.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.URL.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
+            this.URL.Frozen = true;
             this.URL.HeaderText = "Twitch URL";
             this.URL.Name = "URL";
             this.URL.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.URL.Width = 460;
             // 
             // ResolvedURL
             // 
-            this.ResolvedURL.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.ResolvedURL.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
             this.ResolvedURL.FillWeight = 45F;
+            this.ResolvedURL.Frozen = true;
             this.ResolvedURL.HeaderText = "Resolved URL";
             this.ResolvedURL.Name = "ResolvedURL";
             this.ResolvedURL.ReadOnly = true;
             this.ResolvedURL.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.ResolvedURL.Width = 207;
             // 
-            // StartOBS
+            // Resolve
             // 
-            this.StartOBS.Location = new System.Drawing.Point(12, 343);
-            this.StartOBS.Name = "StartOBS";
-            this.StartOBS.Size = new System.Drawing.Size(770, 37);
-            this.StartOBS.TabIndex = 1;
-            this.StartOBS.Text = "Resolve Streams and Start OBS";
-            this.StartOBS.UseVisualStyleBackColor = true;
-            this.StartOBS.Click += new System.EventHandler(this.StartOBS_Click);
+            this.Resolve.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
+            this.Resolve.Frozen = true;
+            this.Resolve.HeaderText = "";
+            this.Resolve.Name = "Resolve";
+            this.Resolve.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.Resolve.Width = 24;
             // 
             // MainWindow
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(794, 391);
-            this.Controls.Add(this.StartOBS);
             this.Controls.Add(this.Sources);
             this.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "MainWindow";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Stream Mosaic";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainWindow_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.Sources)).EndInit();
             this.ResumeLayout(false);
 
@@ -92,9 +96,9 @@
         #endregion
 
         private System.Windows.Forms.DataGridView Sources;
-        private System.Windows.Forms.Button StartOBS;
         private System.Windows.Forms.DataGridViewTextBoxColumn URL;
         private System.Windows.Forms.DataGridViewTextBoxColumn ResolvedURL;
+        private System.Windows.Forms.DataGridViewButtonColumn Resolve;
     }
 }
 
