@@ -1,0 +1,4 @@
+*.resx
+*.suo
+/bin
+/obj

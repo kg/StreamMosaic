@@ -74,8 +74,10 @@ namespace StreamMosaic {
                         psi.UseShellExecute = false;
                         psi.CreateNoWindow = true;
                         psi.WindowStyle = ProcessWindowStyle.Hidden;
+                        /*
                         psi.RedirectStandardError = true;
                         psi.RedirectStandardOutput = true;
+                         */
                         LivestreamerProcess = Process.Start(psi);
 
                         connection.AsyncWaitHandle.WaitOne();
